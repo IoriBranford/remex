@@ -1,3 +1,12 @@
+#!/usr/bin/python3
+
+TileSize = 16
+MiniTileSize = int(TileSize/2)
+InImageWidth = TileSize*3
+InImageHeight = TileSize*4
+OutImageWidth = TileSize*8
+OutImageHeight = TileSize*6
+
 import xml.dom.minidom
 from PIL import Image as ImagePIL
 from PIL import ImageTk
@@ -64,46 +73,51 @@ class AutotileExpander(Script):
         #List of the possible types and directions
         self._minitileType, self._minitilePosition = ["Normal", "External angle", "Internal angle", "HorizontalEdge", "VerticalEdge", "Showcase"], ["NO", "NE", "SO", "SE"]
         #Directions depending on the position in the group
-        self._minitilePositionGroup[0, 0], self._minitilePositionGroup[16, 0], self._minitilePositionGroup[0, 16], self._minitilePositionGroup[16, 16] = "NO", "NE", "SO", "SE"
+        self._minitilePositionGroup[0, 0], self._minitilePositionGroup[MiniTileSize, 0], self._minitilePositionGroup[0, MiniTileSize], self._minitilePositionGroup[MiniTileSize, MiniTileSize] = "NO", "NE", "SO", "SE"
         #Types of the minitiles depending on their groups and directions
-        self._minitileTypeDependingOnGroup[0, 0, "NO"] = "Showcase"
-        self._minitileTypeDependingOnGroup[0, 0, "NE"] = "Showcase"
-        self._minitileTypeDependingOnGroup[0, 0, "SO"] = "Showcase"
-        self._minitileTypeDependingOnGroup[0, 0, "SE"] = "Showcase"
-        self._minitileTypeDependingOnGroup[32, 0, "NO"] = "External angle"
-        self._minitileTypeDependingOnGroup[32, 0, "NE"] = "External angle"
-        self._minitileTypeDependingOnGroup[32, 0, "SO"] = "External angle"
-        self._minitileTypeDependingOnGroup[32, 0, "SE"] = "External angle"
-        self._minitileTypeDependingOnGroup[0, 32, "NO"] = "Internal angle"
-        self._minitileTypeDependingOnGroup[32, 32, "NE"] = "Internal angle"
-        self._minitileTypeDependingOnGroup[0, 64, "SO"] = "Internal angle"
-        self._minitileTypeDependingOnGroup[32, 64, "SE"] = "Internal angle"
-        self._minitileTypeDependingOnGroup[32, 32, "NO"] = "HorizontalEdge"
-        self._minitileTypeDependingOnGroup[0, 32, "NE"] = "HorizontalEdge"
-        self._minitileTypeDependingOnGroup[32, 64, "SO"] = "HorizontalEdge"
-        self._minitileTypeDependingOnGroup[0, 64, "SE"] = "HorizontalEdge"
-        self._minitileTypeDependingOnGroup[0, 64, "NO"] = "VerticalEdge"
-        self._minitileTypeDependingOnGroup[32, 64, "NE"] = "VerticalEdge"
-        self._minitileTypeDependingOnGroup[0, 32, "SO"] = "VerticalEdge"
-        self._minitileTypeDependingOnGroup[32, 32, "SE"] = "VerticalEdge"
-        self._minitileTypeDependingOnGroup[32, 64, "NO"] = "Normal"
-        self._minitileTypeDependingOnGroup[0, 64, "NE"] = "Normal"
-        self._minitileTypeDependingOnGroup[0, 32, "SE"] = "Normal"
-        self._minitileTypeDependingOnGroup[32, 32, "SO"] = "Normal"
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*0, "NO"] = "Showcase"
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*0, "NE"] = "Showcase"
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*0, "SO"] = "Showcase"
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*0, "SE"] = "Showcase"
+
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*0, "NO"] = "External angle"
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*0, "NE"] = "External angle"
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*0, "SO"] = "External angle"
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*0, "SE"] = "External angle"
+
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*1, "NO"] = "Internal angle"
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*1, "NE"] = "Internal angle"
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*3, "SO"] = "Internal angle"
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*3, "SE"] = "Internal angle"
+
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*1, "NO"] = "HorizontalEdge"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*1, "NE"] = "HorizontalEdge"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*3, "SO"] = "HorizontalEdge"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*3, "SE"] = "HorizontalEdge"
+
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*2, "NO"] = "VerticalEdge"
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*2, "NE"] = "VerticalEdge"
+        self._minitileTypeDependingOnGroup[TileSize*0, TileSize*2, "SO"] = "VerticalEdge"
+        self._minitileTypeDependingOnGroup[TileSize*2, TileSize*2, "SE"] = "VerticalEdge"
+
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*2, "NO"] = "Normal"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*2, "NE"] = "Normal"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*2, "SE"] = "Normal"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*2, "SO"] = "Normal"
 
     def _makeAutotile(self, *types):
-        autotileSurface = ImagePIL.new("RGB", (32,32))
+        autotileSurface = ImagePIL.new("RGB", (TileSize,TileSize))
         minitileAbs, minitileOrd, i = 0, 0, 0
-        while minitileOrd < 32:
+        while minitileOrd < TileSize:
             minitileAbs = 0
-            while minitileAbs < 32:
+            while minitileAbs < TileSize:
                 minitilePosition = self._minitilePositionGroup[minitileAbs, minitileOrd]
                 minitileType = types[i]
                 minitileSurface = self._minitiles[minitilePosition][minitileType]
                 autotileSurface.paste(minitileSurface, (minitileAbs, minitileOrd))
                 i += 1
-                minitileAbs += 16
-            minitileOrd += 16
+                minitileAbs += MiniTileSize
+            minitileOrd += MiniTileSize
         return autotileSurface
 
     def expandAutotile(self, autotileFilename):
@@ -115,16 +129,18 @@ class AutotileExpander(Script):
             groupAbs = 0
             while groupAbs < self._imageAutotile.size[0]:
                 minitileAbs, minitileOrd = 0, 0
-                while minitileOrd < 32: #We run through the minitiles
+                while minitileOrd < TileSize: #We run through the minitiles
                     minitileAbs = 0
-                    while minitileAbs < 32:
+                    while minitileAbs < TileSize:
                         minitilePosition = self._minitilePositionGroup[minitileAbs, minitileOrd]
-                        minitileType = self._minitileTypeDependingOnGroup[groupAbs, groupOrd, minitilePosition]
-                        self._minitiles[minitilePosition][minitileType] = self._imageAutotile.crop((groupAbs+minitileAbs, groupOrd+minitileOrd, groupAbs+minitileAbs+16, groupOrd+minitileOrd+16))
-                        minitileAbs += 16
-                    minitileOrd += 16
-                groupAbs += 32
-            groupOrd += 32
+                        #### IB: In RPGM2k not all minitiles in the image are used
+                        if (groupAbs, groupOrd, minitilePosition) in self._minitileTypeDependingOnGroup:
+                            minitileType = self._minitileTypeDependingOnGroup[groupAbs, groupOrd, minitilePosition]
+                            self._minitiles[minitilePosition][minitileType] = self._imageAutotile.crop((groupAbs+minitileAbs, groupOrd+minitileOrd, groupAbs+minitileAbs+MiniTileSize, groupOrd+minitileOrd+MiniTileSize))
+                        minitileAbs += MiniTileSize
+                    minitileOrd += MiniTileSize
+                groupAbs += TileSize
+            groupOrd += TileSize
         ##### We define the types composing the 48 autotiles
         autotilesSurfaces = dict()
         autotilesSurfaces[0] = self._makeAutotile("Normal", "Normal", "Normal", "Normal")
@@ -176,14 +192,14 @@ class AutotileExpander(Script):
         autotilesSurfaces[46] = self._makeAutotile("Showcase", "Showcase", "Showcase", "Showcase")
         autotilesSurfaces[47] = self._makeAutotile("Showcase", "Showcase", "Showcase", "Showcase")
         ##### We make the final surface by blitting our individual surfaces
-        autotileAbs, autotileOrd, i, self._expandedAutotile = 0, 0, 0, ImagePIL.new("RGB", (32*8, 32*6))
-        while autotileOrd < 32 * 6:
+        autotileAbs, autotileOrd, i, self._expandedAutotile = 0, 0, 0, ImagePIL.new("RGB", (OutImageWidth, OutImageHeight))
+        while autotileOrd < OutImageHeight:
             autotileAbs = 0
-            while autotileAbs < 32 * 8:
+            while autotileAbs < OutImageWidth:
                 self._expandedAutotile.paste(autotilesSurfaces[i], (autotileAbs, autotileOrd))
                 i += 1
-                autotileAbs += 32
-            autotileOrd += 32
+                autotileAbs += TileSize
+            autotileOrd += TileSize
         return self._expandedAutotile
             
     def _checkInputValidity(self):
@@ -195,8 +211,8 @@ class AutotileExpander(Script):
 
     def _checkInputSize(self):
             image = ImagePIL.open(self._inputFilename)
-            if image.size != (64, 96):
-                print("The input autotile \"{0}\" does not have the right size.\nIt must be 64 * 96 pixels wide. Please refer to tileA2 formatting from RPG Maker VX / VX Ace.".format(self._inputFilename))
+            if image.size != (InImageWidth, InImageHeight):
+                print("The input autotile \"{0}\" does not have the right size.\nIt must be {1}x{2} pixels wide. Please refer to autotile formatting from RPG Maker 200x.".format(self._inputFilename), InImageWidth, InImageHeight)
                 raise SystemExit
 
     def launchScript(self, inputFilename, outputFilename, askConfirmation, verbose, testSteps=["Input exists", "Input validity", "Input size", "Output without extension", "Output already exists"]):
@@ -216,8 +232,8 @@ class TilesetGenerator(Script):
 
     def _checkInputSize(self):
             image = ImagePIL.open(self._inputFilename)
-            if image.size != (256, 192):
-                print("The input expanded autotile \"{0}\" does not have the right size.\nIt must be 256 * 192 pixels wide. Please expand an autotile from RPG Maker VX / VX Ace with this program first.".format(self._inputFilename))
+            if image.size != (OutImageWidth, OutImageHeight):
+                print("The input expanded autotile \"{0}\" does not have the right size.\nIt must be {1}x{2} pixels wide. Please expand an autotile from RPG Maker 200x with this program first.".format(self._inputFilename), OutImageWidth, OutImageHeight)
                 raise SystemExit
 
     def makeXML(self, inputFilename, outputFilename="Tileset"):
@@ -228,12 +244,12 @@ class TilesetGenerator(Script):
         if tilesetName.lower().endswith(".tsx") is True:
             tilesetName = tilesetName[: len(tilesetName) - 4]
         tilesetXML.setAttribute("name", tilesetName)
-        tilesetXML.setAttribute("tilewidth", "32")
-        tilesetXML.setAttribute("tileheight", "32")
+        tilesetXML.setAttribute("tilewidth", str(TileSize))
+        tilesetXML.setAttribute("tileheight", str(TileSize))
         imageXML = mainXML.createElement("image")
         imageXML.setAttribute("source", self._inputFilename)
         imageXML.setAttribute("trans", "ffffff")
-        width, height = 256, 192
+        width, height = OutImageWidth, OutImageHeight
         imageXML.setAttribute("width", str(width))
         imageXML.setAttribute("height", str(height))
         tilesetXML.appendChild(imageXML)
@@ -275,12 +291,12 @@ class RuleMaker(Script):
         self._tilesetRegionsConfig = xml.dom.minidom.getDOMImplementation().createDocument(None, "tileset", None)
         self._tilesetRegionsXML = self._tilesetRegionsConfig.documentElement
         self._tilesetRegionsXML.setAttribute("name", "Automapping Regions")
-        self._tilesetRegionsXML.setAttribute("tilewidth", "32")
-        self._tilesetRegionsXML.setAttribute("tileheight", "32")
+        self._tilesetRegionsXML.setAttribute("tilewidth", str(TileSize))
+        self._tilesetRegionsXML.setAttribute("tileheight", str(TileSize))
         self._tilesetRegionsXML.setAttribute("firstgid", "49")
         imageTilesetRegionsXML = self._tilesetRegionsConfig.createElement("image")
-        imageTilesetRegionsXML.setAttribute("width","32")
-        imageTilesetRegionsXML.setAttribute("height","32")
+        imageTilesetRegionsXML.setAttribute("width",str(TileSize))
+        imageTilesetRegionsXML.setAttribute("height",str(TileSize))
         imageTilesetRegionsXML.setAttribute("trans","ffffff")
         imageTilesetRegionsXML.setAttribute("source", self._regionsLocation)
         self._tilesetRegionsXML.appendChild(imageTilesetRegionsXML)
@@ -290,8 +306,8 @@ class RuleMaker(Script):
         self._ruleXML.setAttribute("orientation", "orthogonal")
         self._ruleXML.setAttribute("width", "31")
         self._ruleXML.setAttribute("height", "23")
-        self._ruleXML.setAttribute("tilewidth", "32")
-        self._ruleXML.setAttribute("tileheight", "32")
+        self._ruleXML.setAttribute("tilewidth", str(TileSize))
+        self._ruleXML.setAttribute("tileheight", str(TileSize))
         self._ruleXML.appendChild(self._tilesetXML)
         self._ruleXML.appendChild(self._tilesetRegionsXML)
     
@@ -629,7 +645,7 @@ class RuleMaker(Script):
         if newRegionsFile == "":
             newRegionsFile = self._regionsLocation
         try:
-            automappingImage = ImagePIL.new("RGB", (32, 32), (255, 0, 0))
+            automappingImage = ImagePIL.new("RGB", (TileSize, TileSize), (255, 0, 0))
             automappingImage.save(newRegionsFile, "PNG")
         except Exception as error:
             print("Can't write the regions image to the location \"{0}\".\nMake sure that the location isn't read-only, or try to launch the program in admin/root mode. Details:\n{1}".format(self._regionsLocation, error))
@@ -672,14 +688,14 @@ class RuleMaker(Script):
 if __name__ == "__main__":
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(title="Commands", description="The command to execute", dest="command")
-    expandSubCommand = subparsers.add_parser("expand", help="Autotile Expander. Expands an autotile from RPG Maker VX or VX Ace into a grid containing all the possible cases.")
+    expandSubCommand = subparsers.add_parser("expand", help="Autotile Expander. Expands an autotile from RPG Maker 200x into a grid containing all the possible cases.")
     expandSubCommand.add_argument("-o", "--output", metavar="outputAutotile", dest="outputAutotile", default="expandedAutotile.png", help="The output file (the expanded autotile). By default, it is \"expandedAutotile.png\", located in the directory in which you launch the script. The script will ask you whether it should overwrite the file if it already exists, unless you used the force option.")
-    expandSubCommand.add_argument("inputAutotile", help="The autotile to expand. It must follow a few rules. It must be a PNG image, 64 * 96 wide. It must use RPG Maker VX or VX Ace's TileA2 formatting.")
+    expandSubCommand.add_argument("inputAutotile", help="The autotile to expand. It must follow a few rules. It must be a PNG image, {0}x{1} wide. It must use RPG Maker 200x's AutoTile formatting.".format(InImageWidth, InImageHeight))
     expandSubCommand.add_argument("-f", "--force", action="store_false", dest="askConfirmation", help="Forces the script to be executed without asking you anything. The script will overwrite the output file without warning you if it already exists. Furthermore, it won't ask add an extension to the output file if it lacks.")
     expandSubCommand.add_argument("-v", "--verbose", action="store_true", help="Starts the program in verbose mode: it prints detailed information on the process.")
     makeTilesetSubCommand = subparsers.add_parser("maketileset", help="Tileset Generator. Generates a tileset for Tiled map editor with an expanded autotile. You can use it directly (but manually) in your maps, or use it with the Rule Maker to make an automatic automapping rule.")
     makeTilesetSubCommand.add_argument("-o", "--output", metavar="outputTileset", dest="outputTileset", default="expandedAutotileTileset.tsx", help="The output file (the tileset). By default, it is \"expandedAutotileTileset.tsx\", located in the directory in which you launch the script. The script will ask you whether it should overwrite the file if it already exists, unless you used the force option.")
-    makeTilesetSubCommand.add_argument("inputExpandedAutotile", help="The expanded autotile to make a tileset with. It must be a PNG image, 256 * 192 wide. To get this expanded autotile, use the autotile expander featured with Remex (with the command \"expand\").")
+    makeTilesetSubCommand.add_argument("inputExpandedAutotile", help="The expanded autotile to make a tileset with. It must be a PNG image, {0}x{1} wide. To get this expanded autotile, use the autotile expander featured with Remex (with the command \"expand\").".format(OutImageWidth, OutImageHeight))
     makeTilesetSubCommand.add_argument("-f", "--force", action="store_false", dest="askConfirmation", help="Forces the script to be executed without asking you anything. The script will overwrite the output file without warning you if it already exists. Furthermore, it won't ask add an extension to the output file if it lacks.")
     makeTilesetSubCommand.add_argument("-r", "--relative", action="store_true", dest="relativePath", help="In the tileset file, use a relative path to the image itself. Warning: the same relative path will be used in the rulemap if you generate one with this tileset. To avoid any problem regarding paths, you should put your tilesets, maps and images in the same folder.")
     makeTilesetSubCommand.add_argument("-v", "--verbose", action="store_true", help="Starts the program in verbose mode: it prints detailed information on the process.")
