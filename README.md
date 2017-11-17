@@ -1,7 +1,9 @@
-Remex Version 0.2
+Remex2k
 ===============================================================================
 
 Author: Rastagong Librato (rastagong.net)
+
+Adapted for RPG Maker 2000 and 2003 by Iori Branford
 
 Licensed under the Expat License (the "MIT license"). Refer to License.txt.
 
@@ -252,12 +254,7 @@ Using automapping in Tiled is very easy with Remex:
 5. In Tiled, create a new map (save it in the same folder as well). 
 6. Click on the menu Map > Add an external tileset. Choose the tileset that
    you have created from an expanded autotile.
-7. Start mapping! Add any other tileset that you need. When you use the tileset
-   created with Remex, you don't have to choose the tile with the correct 
-   shape: just design your map with a single tile. For instance, if you've 
-   expanded a grass autotile, design the fields without worrying about the
-   corners, the borders, etc. You can draw some big green blocks.
-8. When you are done and want the autotiles to shape properly, press A (or click
-   on Map > AutoMap). 
-9. ???
-10. Profit!
+7. Select the dummy tile, the last tile on the bottom right of the tileset. Flood fill the tile layer with this dummy tile.
+8. Draw the rough shapes with any other tile in the tileset.
+9. When you are done and want the autotiles to shape properly, press A (or click on Map > AutoMap).
+10. If you don't want the dummy tiles, select them all with Select Same Tile and delete them.

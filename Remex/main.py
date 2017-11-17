@@ -71,7 +71,7 @@ class AutotileExpander(Script):
         self._minitiles, self._minitilePosition, self._minitileType = dict(NO=dict(), NE=dict(), SO=dict(), SE=dict()), dict(), dict()
         self._minitileTypeDependingOnGroup, self._minitilePositionGroup = dict(), dict()
         #List of the possible types and directions
-        self._minitileType, self._minitilePosition = ["Normal", "External angle", "Internal angle", "HorizontalEdge", "VerticalEdge", "Showcase"], ["NO", "NE", "SO", "SE"]
+        self._minitileType, self._minitilePosition = ["Normal", "External angle", "Internal angle", "HorizontalEdge", "VerticalEdge", "Showcase", "Dummy"], ["NO", "NE", "SO", "SE"]
         #Directions depending on the position in the group
         self._minitilePositionGroup[0, 0], self._minitilePositionGroup[MiniTileSize, 0], self._minitilePositionGroup[0, MiniTileSize], self._minitilePositionGroup[MiniTileSize, MiniTileSize] = "NO", "NE", "SO", "SE"
         #Types of the minitiles depending on their groups and directions
@@ -79,6 +79,11 @@ class AutotileExpander(Script):
         self._minitileTypeDependingOnGroup[TileSize*0, TileSize*0, "NE"] = "Showcase"
         self._minitileTypeDependingOnGroup[TileSize*0, TileSize*0, "SO"] = "Showcase"
         self._minitileTypeDependingOnGroup[TileSize*0, TileSize*0, "SE"] = "Showcase"
+
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*0, "NO"] = "Dummy"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*0, "NE"] = "Dummy"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*0, "SE"] = "Dummy"
+        self._minitileTypeDependingOnGroup[TileSize*1, TileSize*0, "SO"] = "Dummy"
 
         self._minitileTypeDependingOnGroup[TileSize*2, TileSize*0, "NO"] = "External angle"
         self._minitileTypeDependingOnGroup[TileSize*2, TileSize*0, "NE"] = "External angle"
@@ -190,7 +195,7 @@ class AutotileExpander(Script):
         autotilesSurfaces[44] = self._makeAutotile("VerticalEdge", "VerticalEdge", "Showcase", "Showcase")
         autotilesSurfaces[45] = self._makeAutotile("HorizontalEdge", "Showcase", "HorizontalEdge", "Showcase")
         autotilesSurfaces[46] = self._makeAutotile("Showcase", "Showcase", "Showcase", "Showcase")
-        autotilesSurfaces[47] = self._makeAutotile("Showcase", "Showcase", "Showcase", "Showcase")
+        autotilesSurfaces[47] = self._makeAutotile("Dummy", "Dummy", "Dummy", "Dummy")
         ##### We make the final surface by blitting our individual surfaces
         autotileAbs, autotileOrd, i, self._expandedAutotile = 0, 0, 0, ImagePIL.new("RGB", (OutImageWidth, OutImageHeight))
         while autotileOrd < OutImageHeight:
@@ -619,10 +624,14 @@ class RuleMaker(Script):
         return layerName
 
     def makeRule(self):
+        # IB: Exclude dummy tile 48 from rules.
+        # Mapper must fill layer with dummy tile before drawing,
+        # to work around https://github.com/bjorn/tiled/issues/1520
+        # "Sometimes, having an empty tile in the rule file makes the match fails."
         if self._version08 is False: #Tiled 0.9 style
-            layers = ["regions"] +  ["input_"+self._mapLayer]*48 + ["output_"+self._mapLayer]
+            layers = ["regions"] +  ["input_"+self._mapLayer]*47 + ["output_"+self._mapLayer]
         else: #Tiled 0.8 style
-            layers = ["RuleRegion"] + ["RuleSet"]*48 + ["Rule_"+self._mapLayer]
+            layers = ["RuleRegion"] + ["RuleSet"]*47 + ["Rule_"+self._mapLayer]
         i = 0
         while i < len(layers):
             layer = self._ruleConfig.createElement("layer")
