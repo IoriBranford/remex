@@ -15,6 +15,7 @@ the automapping feature from Tiled map editor too (http://mapeditor.org).
 
 It features:
 
+* A script to extract the autotiles from a RPG Maker 200x chipset.
 * An autotile expander. It turns the compact autotiles from RPG Maker 
   into readily-usable grids of 48 tiles with all the possible 
   tile configurations.
@@ -104,7 +105,12 @@ generator and the rule maker.
 
 * Commands:
 
-    {expand,maketileset,makerule}
+    {extract,expand,maketileset,makerule}
+
+    * extract
+
+       Autotile Extractor. Saves the autotiles from an RPG Maker 2000 or 2003 chipset into 
+       individual images.
 
     * expand              
 
@@ -122,6 +128,31 @@ generator and the rule maker.
       Rule Maker. Generates an automapping rule for Tiled map editor using a tileset
       of an expanded autotile. It enables you to map autotiles automatically, without
       worrying about the precise case to use.
+
+### Extract command
+
+- usage: main.exe extract [-h][-o outputAutotile] [-f][-v] inputChipset
+
+- positional arguments:
+
+  - inputChipset
+    The chipset from which to extract. It must follow a few rules. It must be a PNG image, 480x256 wide. It must use RPG Maker 2000 or 2003's chipset formatting.
+
+- optional arguments:
+
+  - -h, --help            show this help message and exit
+
+  - -o outputPrefix, --output outputPrefix
+
+    The prefix for each output file (the extracted autotiles). By default, it is "extractedAutotile", so the output files will be `extractedAutotile_0.png`, `extractedAutotile_1.png`, ... located in the directory in which you launch the script. The script will ask you whether it should overwrite each file that already exists, unless you used the force option.
+
+  - -f, --force
+
+    Forces the script to be executed without asking you anything. The script will overwrite the output file without warning you if it already exists. Furthermore, it won't ask add an extension to the output file if it lacks.
+
+  - -v, --verbose
+
+    Starts the program in verbose mode: it prints detailed information on the process.
 
 ###Expand command
 * usage: main.exe expand [-h] [-o outputAutotile] [-f] [-v] inputAutotile

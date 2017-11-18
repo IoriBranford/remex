@@ -2,10 +2,12 @@
 
 TileSize = 16
 MiniTileSize = int(TileSize/2)
-InImageWidth = TileSize*3
-InImageHeight = TileSize*4
-OutImageWidth = TileSize*8
-OutImageHeight = TileSize*6
+ChipsetImageWidth = TileSize*30
+ChipsetImageHeight = TileSize*16
+AutotileImageWidth = TileSize*3
+AutotileImageHeight = TileSize*4
+TilesetImageWidth = TileSize*8
+TilesetImageHeight = TileSize*6
 
 import xml.dom.minidom
 from PIL import Image as ImagePIL
@@ -63,6 +65,61 @@ class Script:
         i = True
         while i < len(testSteps):
             self._checkArguments(testSteps[i])
+            i += 1
+
+class AutotileExtractor(Script):
+    def _initializeLocations(self):
+        self._autotilePositions = [
+                (TileSize*0, TileSize*8),
+                (TileSize*3, TileSize*8),
+                (TileSize*0, TileSize*12),
+                (TileSize*3, TileSize*12),
+                (TileSize*6, TileSize*0),
+                (TileSize*9, TileSize*0),
+                (TileSize*6, TileSize*4),
+                (TileSize*9, TileSize*4),
+                (TileSize*6, TileSize*8),
+                (TileSize*9, TileSize*8),
+                (TileSize*6, TileSize*12),
+                (TileSize*9, TileSize*12)
+        ]
+
+    def extractAutotiles(self, chipsetFilename):
+        self._imageChipset = ImagePIL.open(chipsetFilename)
+        self._autotiles = []
+        for position in self._autotilePositions:
+            autotileSurface = self._imageChipset.crop((
+                position[0],
+                position[1],
+                position[0]+AutotileImageWidth,
+                position[1]+AutotileImageHeight))
+            self._autotiles += [autotileSurface]
+        return self._autotiles
+
+    def _checkInputValidity(self):
+            try:
+                image = ImagePIL.open(self._inputFilename)
+            except IOError as error:
+                print("The input chipset \"{0}\" is not a valid PNG image. Details:\n{1}".format(self._inputFilename, error))
+                raise SystemExit
+
+    def _checkInputSize(self):
+            image = ImagePIL.open(self._inputFilename)
+            if image.size != (ChipsetImageWidth, ChipsetImageHeight):
+                print("The input chipset \"{0}\" does not have the right size.\nIt must be {1}x{2} pixels wide. Please refer to chipset formatting from RPG Maker 200x.".format(self._inputFilename, ChipsetImageWidth, ChipsetImageHeight))
+                raise SystemExit
+
+    def launchScript(self, inputFilename, outputFilename, askConfirmation, verbose, testSteps=["Input exists", "Input validity", "Input size"]):
+        super().launchScript(inputFilename, outputFilename, askConfirmation, verbose, testSteps=testSteps)
+        self._initializeLocations()
+        self.extractAutotiles(self._inputFilename)
+        outputFilenamePrefix = self._outputFilename
+        i = 0
+        for autotile in self._autotiles:
+            self._outputFilename = "{0}_{1}{2}".format(outputFilenamePrefix, i, self._outputFileExtension)
+            self._checkArguments("Output already exists")
+            autotile.save(self._outputFilename, "PNG")
+            self._printVerbose("Successfully created the autotile \"{0}\"!".format(self._outputFilename))
             i += 1
 
 class AutotileExpander(Script):
@@ -197,10 +254,10 @@ class AutotileExpander(Script):
         autotilesSurfaces[46] = self._makeAutotile("Showcase", "Showcase", "Showcase", "Showcase")
         autotilesSurfaces[47] = self._makeAutotile("Dummy", "Dummy", "Dummy", "Dummy")
         ##### We make the final surface by blitting our individual surfaces
-        autotileAbs, autotileOrd, i, self._expandedAutotile = 0, 0, 0, ImagePIL.new("RGB", (OutImageWidth, OutImageHeight))
-        while autotileOrd < OutImageHeight:
+        autotileAbs, autotileOrd, i, self._expandedAutotile = 0, 0, 0, ImagePIL.new("RGB", (TilesetImageWidth, TilesetImageHeight))
+        while autotileOrd < TilesetImageHeight:
             autotileAbs = 0
-            while autotileAbs < OutImageWidth:
+            while autotileAbs < TilesetImageWidth:
                 self._expandedAutotile.paste(autotilesSurfaces[i], (autotileAbs, autotileOrd))
                 i += 1
                 autotileAbs += TileSize
@@ -216,8 +273,8 @@ class AutotileExpander(Script):
 
     def _checkInputSize(self):
             image = ImagePIL.open(self._inputFilename)
-            if image.size != (InImageWidth, InImageHeight):
-                print("The input autotile \"{0}\" does not have the right size.\nIt must be {1}x{2} pixels wide. Please refer to autotile formatting from RPG Maker 200x.".format(self._inputFilename), InImageWidth, InImageHeight)
+            if image.size != (AutotileImageWidth, AutotileImageHeight):
+                print("The input autotile \"{0}\" does not have the right size.\nIt must be {1}x{2} pixels wide. Please refer to autotile formatting from RPG Maker 200x.".format(self._inputFilename, AutotileImageWidth, AutotileImageHeight))
                 raise SystemExit
 
     def launchScript(self, inputFilename, outputFilename, askConfirmation, verbose, testSteps=["Input exists", "Input validity", "Input size", "Output without extension", "Output already exists"]):
@@ -237,8 +294,8 @@ class TilesetGenerator(Script):
 
     def _checkInputSize(self):
             image = ImagePIL.open(self._inputFilename)
-            if image.size != (OutImageWidth, OutImageHeight):
-                print("The input expanded autotile \"{0}\" does not have the right size.\nIt must be {1}x{2} pixels wide. Please expand an autotile from RPG Maker 200x with this program first.".format(self._inputFilename), OutImageWidth, OutImageHeight)
+            if image.size != (TilesetImageWidth, TilesetImageHeight):
+                print("The input expanded autotile \"{0}\" does not have the right size.\nIt must be {1}x{2} pixels wide. Please expand an autotile from RPG Maker 200x with this program first.".format(self._inputFilename, TilesetImageWidth, TilesetImageHeight))
                 raise SystemExit
 
     def makeXML(self, inputFilename, outputFilename="Tileset"):
@@ -254,7 +311,7 @@ class TilesetGenerator(Script):
         imageXML = mainXML.createElement("image")
         imageXML.setAttribute("source", self._inputFilename)
         imageXML.setAttribute("trans", "ffffff")
-        width, height = OutImageWidth, OutImageHeight
+        width, height = TilesetImageWidth, TilesetImageHeight
         imageXML.setAttribute("width", str(width))
         imageXML.setAttribute("height", str(height))
         tilesetXML.appendChild(imageXML)
@@ -697,14 +754,19 @@ class RuleMaker(Script):
 if __name__ == "__main__":
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(title="Commands", description="The command to execute", dest="command")
+    extractSubCommand = subparsers.add_parser("extract", help="Autotile Extractor. Extracts the 12 autotile sets from an RPG Maker 200x chipset into individual autotile images.")
+    extractSubCommand.add_argument("-o", "--output", metavar="outputPrefix", dest="outputPrefix", default="extractedAutotile", help="The prefix for each output file (the extracted autotiles). By default, it is \"extractedAutotile\", so the output files will be \"extractedAutotile_0.png\", \"extractedAutotile_1.png\", ... located in the directory in which you launch the script. The script will ask you whether it should overwrite each file that already exists, unless you used the force option.")
+    extractSubCommand.add_argument("inputChipset", help="The chipset from which to extract. It must follow a few rules. It must be a PNG image, {0}x{1} wide. It must use RPG Maker 200x's chipset formatting.".format(ChipsetImageWidth, ChipsetImageHeight))
+    extractSubCommand.add_argument("-f", "--force", action="store_false", dest="askConfirmation", help="Forces the script to be executed without asking you anything. The script will overwrite every output file without warning you if it already exists.")
+    extractSubCommand.add_argument("-v", "--verbose", action="store_true", help="Starts the program in verbose mode: it prints detailed information on the process.")
     expandSubCommand = subparsers.add_parser("expand", help="Autotile Expander. Expands an autotile from RPG Maker 200x into a grid containing all the possible cases.")
     expandSubCommand.add_argument("-o", "--output", metavar="outputAutotile", dest="outputAutotile", default="expandedAutotile.png", help="The output file (the expanded autotile). By default, it is \"expandedAutotile.png\", located in the directory in which you launch the script. The script will ask you whether it should overwrite the file if it already exists, unless you used the force option.")
-    expandSubCommand.add_argument("inputAutotile", help="The autotile to expand. It must follow a few rules. It must be a PNG image, {0}x{1} wide. It must use RPG Maker 200x's AutoTile formatting.".format(InImageWidth, InImageHeight))
+    expandSubCommand.add_argument("inputAutotile", help="The autotile to expand. It must follow a few rules. It must be a PNG image, {0}x{1} wide. It must use RPG Maker 200x's Autotile formatting.".format(AutotileImageWidth, AutotileImageHeight))
     expandSubCommand.add_argument("-f", "--force", action="store_false", dest="askConfirmation", help="Forces the script to be executed without asking you anything. The script will overwrite the output file without warning you if it already exists. Furthermore, it won't ask add an extension to the output file if it lacks.")
     expandSubCommand.add_argument("-v", "--verbose", action="store_true", help="Starts the program in verbose mode: it prints detailed information on the process.")
     makeTilesetSubCommand = subparsers.add_parser("maketileset", help="Tileset Generator. Generates a tileset for Tiled map editor with an expanded autotile. You can use it directly (but manually) in your maps, or use it with the Rule Maker to make an automatic automapping rule.")
     makeTilesetSubCommand.add_argument("-o", "--output", metavar="outputTileset", dest="outputTileset", default="expandedAutotileTileset.tsx", help="The output file (the tileset). By default, it is \"expandedAutotileTileset.tsx\", located in the directory in which you launch the script. The script will ask you whether it should overwrite the file if it already exists, unless you used the force option.")
-    makeTilesetSubCommand.add_argument("inputExpandedAutotile", help="The expanded autotile to make a tileset with. It must be a PNG image, {0}x{1} wide. To get this expanded autotile, use the autotile expander featured with Remex (with the command \"expand\").".format(OutImageWidth, OutImageHeight))
+    makeTilesetSubCommand.add_argument("inputExpandedAutotile", help="The expanded autotile to make a tileset with. It must be a PNG image, {0}x{1} wide. To get this expanded autotile, use the autotile expander featured with Remex (with the command \"expand\").".format(TilesetImageWidth, TilesetImageHeight))
     makeTilesetSubCommand.add_argument("-f", "--force", action="store_false", dest="askConfirmation", help="Forces the script to be executed without asking you anything. The script will overwrite the output file without warning you if it already exists. Furthermore, it won't ask add an extension to the output file if it lacks.")
     makeTilesetSubCommand.add_argument("-r", "--relative", action="store_true", dest="relativePath", help="In the tileset file, use a relative path to the image itself. Warning: the same relative path will be used in the rulemap if you generate one with this tileset. To avoid any problem regarding paths, you should put your tilesets, maps and images in the same folder.")
     makeTilesetSubCommand.add_argument("-v", "--verbose", action="store_true", help="Starts the program in verbose mode: it prints detailed information on the process.")
@@ -718,7 +780,10 @@ if __name__ == "__main__":
     makeRuleSubCommand.add_argument("-v", "--verbose", action="store_true", help="Starts the program in verbose mode: it prints detailed information on the process.")
     answers = vars(parser.parse_args())
     command, verbose, askConfirmation = answers["command"], answers["verbose"], answers["askConfirmation"]
-    if command == "expand":
+    if command == "extract":
+        autotileExtractor, outputPrefix, inputChipset = AutotileExtractor("chipset", ".png"), answers["outputPrefix"], answers["inputChipset"]
+        autotileExtractor.launchScript(inputChipset, outputPrefix, askConfirmation, verbose)
+    elif command == "expand":
         autotileExpander, outputAutotile, inputAutotile = AutotileExpander("autotile", ".png"), answers["outputAutotile"], answers["inputAutotile"]
         autotileExpander.launchScript(inputAutotile, outputAutotile, askConfirmation, verbose)
     elif command == "maketileset":
