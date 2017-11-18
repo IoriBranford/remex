@@ -15,7 +15,7 @@ the automapping feature from Tiled map editor too (http://mapeditor.org).
 
 It features:
 
-* A script to extract the autotiles from a RPG Maker 200x chipset.
+* A script to extract all the tile groups from a RPG Maker 200x chipset.
 * An autotile expander. It turns the compact autotiles from RPG Maker 
   into readily-usable grids of 48 tiles with all the possible 
   tile configurations.
@@ -109,8 +109,7 @@ generator and the rule maker.
 
     * extract
 
-       Autotile Extractor. Saves the autotiles from an RPG Maker 2000 or 2003 chipset into 
-       individual images.
+       Tile Extractor. Extracts the water tiles, animated tiles, autotiles, low tiles, and high tiles from an RPG Maker 200x chipset into individual images.
 
     * expand              
 
@@ -144,7 +143,7 @@ generator and the rule maker.
 
   - -o outputPrefix, --output outputPrefix
 
-    The prefix for each output file (the extracted autotiles). By default, it is "extractedAutotile", so the output files will be `extractedAutotile_0.png`, `extractedAutotile_1.png`, ... located in the directory in which you launch the script. The script will ask you whether it should overwrite each file that already exists, unless you used the force option.
+    The prefix for each output file. By default, it is `extractedTiles`, so the output files will be `extractedTiles_at[0..11].png`, `extractedTiles_w[0..2].png`, `extractedTiles_an.png`, `extractedTiles_lo.png`, and `extractedTiles_hi.png`, located in the directory in which you launch the script. The script will ask you whether it should overwrite each file that already exists, unless you used the force option.
 
   - -f, --force
 
