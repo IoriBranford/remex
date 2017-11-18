@@ -221,7 +221,7 @@ generator and the rule maker.
 
 ###Makerule command
 * usage: main.exe makerule [-h] [-o outputRule] [-l mapLayer]
-  [-r regionsLocation] [-8] [-f] [-v] inputTileset
+  [-8] [-f] [-v] inputTileset
 
 * positional arguments:
 
@@ -250,12 +250,6 @@ generator and the rule maker.
       The name of the map layer to consider during the automapping. By default, it is 
       "Tile Layer 1". You can only choose a layer per rule, so you need to make 
       another rule if you want another layer to be considered too.
-
-   * -r regionsLocation, --regions regionsLocation
-
-      The rulemap requires an additional image to work properly. 
-      By default, the image is always created in the folder of the rulemap. But if 
-      you want to, you can set another location.
 
     * -8, --v08
 

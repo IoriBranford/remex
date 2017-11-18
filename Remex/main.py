@@ -6,10 +6,6 @@ ChipsetImageWidth = TileSize*30
 ChipsetImageHeight = TileSize*16
 AutotileImageWidth = TileSize*3
 AutotileImageHeight = TileSize*4
-WaterPageWidth = TileSize*3
-WaterPageHeight = TileSize*4
-WaterImageWidth = WaterPageWidth*3
-WaterImageHeight = WaterPageHeight*1
 DecoPageWidth = TileSize*6
 DecoPageHeight = TileSize*8
 DecoImageWidth = DecoPageWidth*1
@@ -17,7 +13,7 @@ DecoImageHeight = DecoPageHeight*3
 AutoTilesetImageWidth = TileSize*8
 AutoTilesetImageHeight = TileSize*6
 
-import xml.dom.minidom
+import xml.dom.minidom, base64, zlib, array
 from PIL import Image as ImagePIL
 from PIL import ImageTk
 from os import path
@@ -48,8 +44,6 @@ class Script:
             self._checkInputValidity()
         elif step == "Input size":
             self._checkInputSize()
-        elif step == "Regions image":
-            self._checkRegionsImage()
         elif step == "Output without extension":
             if self._outputFilename.lower().endswith(self._outputFileExtension) is False and self._askConfirmation is True:
                 answerIgnoreNoExtension = self._interacter.askString("The output file \"{0}\" does not have a {1} extension. Shall I add the extension? (Y/n)".format(self._outputFilename, self._outputFileExtension))
@@ -418,40 +412,19 @@ class RuleMaker(Script):
             print("An error was encountered while loading the tileset {0}. Details:\n{1}".format(self._inputFilename,error))
             raise SystemExit
 
-    def _checkRegionsImage(self):
-        regionsOriginalLocation = path.abspath(path.dirname(argv[0])).replace("\\", "/") + "/AutomappingRegions.png"
-        try:
-            image = ImagePIL.open(regionsOriginalLocation)
-        except IOError as error:
-            print("Can't find the file \"{0}\".\nThe program should always be run within its original folder to work properly. Details:\n{1}".format(regionsOriginalLocation, error))
-            raise SystemExit
-
     def _loadTileset(self):
         self._tilesetConfig = xml.dom.minidom.parse(self._inputFilename)
         self._tilesetXML = self._tilesetConfig.documentElement
         self._tilesetXML.setAttribute("firstgid", "1")
-        self._tilesetRegionsConfig = xml.dom.minidom.getDOMImplementation().createDocument(None, "tileset", None)
-        self._tilesetRegionsXML = self._tilesetRegionsConfig.documentElement
-        self._tilesetRegionsXML.setAttribute("name", "Automapping Regions")
-        self._tilesetRegionsXML.setAttribute("tilewidth", str(TileSize))
-        self._tilesetRegionsXML.setAttribute("tileheight", str(TileSize))
-        self._tilesetRegionsXML.setAttribute("firstgid", "49")
-        imageTilesetRegionsXML = self._tilesetRegionsConfig.createElement("image")
-        imageTilesetRegionsXML.setAttribute("width",str(TileSize))
-        imageTilesetRegionsXML.setAttribute("height",str(TileSize))
-        imageTilesetRegionsXML.setAttribute("trans","ffffff")
-        imageTilesetRegionsXML.setAttribute("source", self._regionsLocation)
-        self._tilesetRegionsXML.appendChild(imageTilesetRegionsXML)
         self._ruleConfig = xml.dom.getDOMImplementation().createDocument(None, "map", None)
         self._ruleXML = self._ruleConfig.documentElement
         self._ruleXML.setAttribute("version", "1.0")
         self._ruleXML.setAttribute("orientation", "orthogonal")
-        self._ruleXML.setAttribute("width", "31")
-        self._ruleXML.setAttribute("height", "23")
+        self._ruleXML.setAttribute("width", "32")
+        self._ruleXML.setAttribute("height", "24")
         self._ruleXML.setAttribute("tilewidth", str(TileSize))
         self._ruleXML.setAttribute("tileheight", str(TileSize))
         self._ruleXML.appendChild(self._tilesetXML)
-        self._ruleXML.appendChild(self._tilesetRegionsXML)
     
     def _defineTilesContents(self):
         self._layerTiles, i = {"regions": dict(), "input_" + self._mapLayer: dict()}, 0
@@ -696,20 +669,10 @@ class RuleMaker(Script):
         self._layerTiles["input_" + self._mapLayer][6,22] = 0,0,0
         self._layerTiles["input_" + self._mapLayer][7,22] = 0,0,0
         
-    def _makeTile(self, tileType):
-        tile = self._ruleConfig.createElement("tile")
-        if tileType == "Empty":
-            tile.setAttribute("gid", "0")
-        elif tileType == "Regions":
-            tile.setAttribute("gid", "49")
-        elif isinstance(tileType, int):
-            tile.setAttribute("gid", str(tileType))
-        return tile
-
     def _getGidWithLayerAndPosition(self, layerName, x, y, groupX):
         fullOrEmptyTile = self._layerTiles[layerName][x,y][groupX]
-        if fullOrEmptyTile == 1 and layerName == "regions": #On the regions layer, a full tile comes from the automapping tileset, and it's the only tile whose gid is 49
-            gid = 49
+        if fullOrEmptyTile == 1 and layerName == "regions": #On the regions layer, a full tile comes from the automapping tileset, and it's the only tile whose gid is 48
+            gid = 48
         elif fullOrEmptyTile == 1 and layerName == "input_" + self._mapLayer: #On the input layers, the full tile has the value of the current tile of the autotile set (an input layer per autotile)
             gid = self._inputLayerTileCurrentGid
         elif fullOrEmptyTile == 0:
@@ -718,6 +681,7 @@ class RuleMaker(Script):
 
     def _makeLayerTiles(self, layerData, layerName):
         x, y, groupX, groupY, separationLineX, groupId = 0, 0, 0, 0, 0, 0
+        dataArray = array.array('l')
         while y < 24:
             if groupY < 3:
                 x, lineX = 0, 0
@@ -726,16 +690,15 @@ class RuleMaker(Script):
                     while groupX < 4:
                         if groupX < 3:
                             if layerName == "regions" and y < 8: #In the first part of the regions layer, we use only the regions tile
-                                tile = self._makeTile("Regions")
+                                dataArray.append(48)
                             elif layerName == "output_" + self._mapLayer and not (groupX == 1 and groupY == 1): #On the output layer, when we're not in the middle of the group, empty tile...
-                                tile = self._makeTile("Empty")
+                                dataArray.append(0)
                             elif layerName == "output_" + self._mapLayer and groupX == 1 and groupY == 1:#...But when we're in the middle, we use the value of the output tile of the group
-                                tile = self._makeTile(groupId+1)
+                                dataArray.append(groupId+1)
                             else: #For the rest, we use the schemes we have defined
-                                tile = self._makeTile( self._getGidWithLayerAndPosition(layerName, x, y, groupX) )
+                                dataArray.append(self._getGidWithLayerAndPosition(layerName, x, y, groupX))
                         else:
-                            tile = self._makeTile("Empty")
-                        layerData.appendChild(tile)
+                            dataArray.append(0)
                         groupX += 1
                         lineX += 1
                     x += 1
@@ -744,12 +707,13 @@ class RuleMaker(Script):
             else:
                 separationLineX = 0
                 while separationLineX < 32:
-                    tile = self._makeTile("Empty")
-                    layerData.appendChild(tile)
+                    dataArray.append(0)
                     separationLineX += 1
                 groupY = -1
             y += 1
             groupY += 1
+        data = base64.b64encode(zlib.compress(dataArray))
+        layerData.appendChild(self._ruleConfig.createTextNode(data.decode()))
 
     def _convertLayerNameVersion08(self, layerName):
         if layerName == "RuleRegion":
@@ -776,32 +740,18 @@ class RuleMaker(Script):
             layer.setAttribute("width", "32")
             layer.setAttribute("height", "24")
             layerData = self._ruleConfig.createElement("data")
+            layerData.setAttribute("encoding", "base64")
+            layerData.setAttribute("compression", "zlib")
             layers[i] = self._convertLayerNameVersion08(layers[i]) #Once the layers have been created, we must convert the ones in 0.8 style into layers in 0.9 style, so that they work with the rest of the program
             self._makeLayerTiles(layerData, layers[i])
             layer.appendChild(layerData)
             self._ruleXML.appendChild(layer)
             if layers[i] != "regions":
                 self._inputLayerTileCurrentGid += 1
-            if self._inputLayerTileCurrentGid == 49:
+            if self._inputLayerTileCurrentGid == 48:
                 self._inputLayerTileCurrentGid = 1
             i += 1
         return self._ruleConfig
-    
-    def createRegionsImage(self, newRegionsFile=""):
-        if newRegionsFile == "":
-            newRegionsFile = self._regionsLocation
-        try:
-            automappingImage = ImagePIL.new("RGB", (TileSize, TileSize), (255, 0, 0))
-            automappingImage.save(newRegionsFile, "PNG")
-        except Exception as error:
-            print("Can't write the regions image to the location \"{0}\".\nMake sure that the location isn't read-only, or try to launch the program in admin/root mode. Details:\n{1}".format(self._regionsLocation, error))
-            raise SystemExit
-
-    def setRegionsLocation(self, regionsLocation):
-        if regionsLocation == "": #No regions location: we use the folder of the output file
-            self._regionsLocation =  path.abspath(path.dirname(self._outputFilename)).replace("\\", "/") + "/automappingRegions.png"
-        else: 
-            self._regionsLocation = path.abspath(regionsLocation).replace("\\", "/") + "/automappingRegions.png"
 
     def initializeEverything(self, inputFilename="", mapLayer="", version08=""):
         if inputFilename != "":
@@ -817,13 +767,10 @@ class RuleMaker(Script):
     def unlinkOtherData(self):
         self._ruleConfig.unlink()
         self._tilesetConfig.unlink()
-        self._tilesetRegionsConfig.unlink()
 
-    def launchScript(self, inputFilename, outputFilename, mapLayer, regionsLocation, version08, askConfirmation, verbose, testSteps=["Input exists", "Input validity", "Regions image", "Output without extension", "Output already exists"]):
+    def launchScript(self, inputFilename, outputFilename, mapLayer, version08, askConfirmation, verbose, testSteps=["Input exists", "Input validity", "Output without extension", "Output already exists"]):
         super().launchScript(inputFilename, outputFilename, askConfirmation, verbose, testSteps=testSteps)
-        originalRegionsFile, self._mapLayer, self._version08 = path.abspath(path.dirname(argv[0])).replace("\\", "/") + "/automappingRegions.png", mapLayer, version08
-        self.setRegionsLocation(regionsLocation)
-        self.createRegionsImage()
+        self._mapLayer, self._version08 = mapLayer, version08
         self.initializeEverything()
         xmlData = self.makeRule()
         with open(self._outputFilename, "w") as outputFile:
@@ -854,7 +801,6 @@ if __name__ == "__main__":
     makeRuleSubCommand.add_argument("inputTileset", help="The tileset for Tiled to make an automapping rule with. It must be a tsx file referring to an expanded autotile. To get the expanded autotile, use the autotile expander featured with Remex (with the command \"expand\"). To get the tileset, use the tileset maker featured with Remex (with the command \"maketileset\").")
     makeRuleSubCommand.add_argument("-o", "--output", metavar="outputRule", dest="outputRule", default="automappingRule.tmx", help="The output file (the automapping rule). By default, it is \"automappingrule.tmx\", located in the directory in which you launch the script. The script will ask you whether it should overwrite the file if it already exists, unless you used the force option.")
     makeRuleSubCommand.add_argument("-l", "--layer", metavar="mapLayer", dest="mapLayer", default="Tile Layer 1", help="The name of the map layer to consider during the automapping. By default, it is \"Tile Layer 1\". You can only choose a layer per rule, so you need to make another rule if you want another layer to be considered too.")
-    makeRuleSubCommand.add_argument("-r", "--regions", metavar="regionsLocation", dest="regionsLocation", default="", help="The rulemap requires an additional image to work properly. By default, the image is always created in the folder of the rulemap. But if you want to, you can set another location.")
     makeRuleSubCommand.add_argument("-8", "--v08", dest="version08", action="store_true", help="Formats the rulemap for the 0.8 version of Tiled. By default, the rulemaker formats the rule for the 0.9 version.")
     makeRuleSubCommand.add_argument("-f", "--force", action="store_false", dest="askConfirmation", help="Forces the script to be executed without asking you anything. The script will overwrite the output file without warning you if it already exists. Furthermore, it won't ask add an extension to the output file if it lacks.")
     makeRuleSubCommand.add_argument("-v", "--verbose", action="store_true", help="Starts the program in verbose mode: it prints detailed information on the process.")
@@ -872,5 +818,5 @@ if __name__ == "__main__":
         tilesetGenerator.launchScript(inputExpandedAutotile, outputTileset, relativePath, askConfirmation, verbose)
     elif command == "makerule":
         ruleMaker, outputRule, inputTileset, mapLayer = RuleMaker("automapping rule", ".tmx"), answers["outputRule"], answers["inputTileset"], answers["mapLayer"]
-        regionsLocation, version08 = answers["regionsLocation"], answers["version08"]
-        ruleMaker.launchScript(inputTileset, outputRule, mapLayer, regionsLocation, version08, askConfirmation, verbose)
+        version08 = answers["version08"]
+        ruleMaker.launchScript(inputTileset, outputRule, mapLayer, version08, askConfirmation, verbose)
